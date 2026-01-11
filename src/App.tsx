@@ -9,6 +9,8 @@ import { Send, type SendDraft } from './screens/Send';
 import { Confirm } from './screens/Confirm';
 import { TabDashboard } from './screens/TabDashboard';
 import { TxDetails } from './screens/TxDetails';
+import { ApproveConnect } from './screens/ApproveConnect';
+import { ApproveTx } from './screens/ApproveTx';
 
 type Route = HomeNav | 'confirm' | 'tx_details';
 
@@ -19,6 +21,17 @@ function AppInner() {
   const [selectedTx, setSelectedTx] = useState<WalletTxRecord | null>(null);
   const isTab = useMemo(() => document.documentElement.dataset.mode === 'tab', []);
 
+  // Check for approval mode
+  const approvalParams = useMemo(() => {
+    const url = new URL(window.location.href);
+    const approval = url.searchParams.get('approval');
+    const requestId = url.searchParams.get('requestId');
+    if (approval && requestId) {
+      return { type: approval, requestId };
+    }
+    return null;
+  }, []);
+
   const screen = useMemo(() => {
     if (wallet.status === 'loading') return 'loading';
     if (wallet.status === 'needs_onboarding') return 'onboarding';
@@ -27,6 +40,36 @@ function AppInner() {
   }, [wallet.status, nav]);
 
   const isAuthLike = isTab && (screen === 'loading' || screen === 'onboarding' || screen === 'unlock');
+
+  // If in approval mode and wallet is unlocked, show approval screen
+  if (approvalParams && wallet.status === 'unlocked') {
+    const handleDone = () => {
+      window.close();
+    };
+
+    return (
+      <div className="min-h-[520px] min-w-[420px]">
+        {approvalParams.type === 'connect' ? (
+          <ApproveConnect requestId={approvalParams.requestId} onDone={handleDone} />
+        ) : approvalParams.type === 'sendTransaction' ? (
+          <ApproveTx requestId={approvalParams.requestId} onDone={handleDone} />
+        ) : (
+          <div className="flex min-h-[400px] items-center justify-center p-4">
+            <p className="text-sm text-gray-400">Unknown approval type</p>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // If in approval mode but wallet needs unlock, show unlock screen
+  if (approvalParams && wallet.status === 'locked') {
+    return (
+      <div className="min-h-[520px] min-w-[420px] p-4">
+        <Unlock />
+      </div>
+    );
+  }
 
   return (
     <div className={isTab ? 'min-h-screen w-full px-10 pb-10 pt-16' : 'min-h-[520px] min-w-[420px] p-4'}>

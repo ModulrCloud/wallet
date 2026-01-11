@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modulr Wallet Demo Site</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #0a0a0c 0%, #1a1a1f 100%);
+      color: #f7f7f7;
+      min-height: 100vh;
+      padding: 40px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    .subtitle {
+      color: #888;
+      margin-bottom: 2rem;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 16px;
+    }
+    .card h2 {
+      font-size: 1rem;
+      color: #aaa;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+    button {
+      background: linear-gradient(135deg, #f5b400 0%, #d4a000 100%);
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.2s;
+    }
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(245, 180, 0, 0.3);
+    }
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+    .secondary-btn {
+      background: rgba(255, 255, 255, 0.1);
+      color: #f7f7f7;
+    }
+    .secondary-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      box-shadow: none;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #666;
+    }
+    .status-dot.connected {
+      background: #4ade80;
+    }
+    .status-dot.not-installed {
+      background: #ef4444;
+    }
+    .account {
+      font-family: monospace;
+      font-size: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      padding: 12px;
+      border-radius: 8px;
+      word-break: break-all;
+      margin-top: 12px;
+    }
+    .form-group {
+      margin-bottom: 16px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 6px;
+    }
+    .form-group input {
+      width: 100%;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      color: #f7f7f7;
+      font-family: monospace;
+      font-size: 14px;
+    }
+    .form-group input:focus {
+      outline: none;
+      border-color: #f5b400;
+    }
+    .buttons {
+      display: flex;
+      gap: 12px;
+    }
+    .log {
+      font-family: monospace;
+      font-size: 11px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 16px;
+      border-radius: 8px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+    .log-entry {
+      padding: 4px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .log-entry.error {
+      color: #f87171;
+    }
+    .log-entry.success {
+      color: #4ade80;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔗 Modulr Wallet Demo</h1>
+    <p class="subtitle">Test site integration with Modulr Wallet extension</p>
+
+    <div class="card">
+      <h2>Connection Status</h2>
+      <div class="status">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">Checking...</span>
+      </div>
+      <div class="buttons">
+        <button id="connectBtn" disabled>Connect Wallet</button>
+        <button id="disconnectBtn" class="secondary-btn" disabled>Disconnect</button>
+      </div>
+      <div class="account" id="accountDisplay" style="display: none;"></div>
+    </div>
+
+    <div class="card">
+      <h2>Send Transaction</h2>
+      <div class="form-group">
+        <label>Recipient Address</label>
+        <input type="text" id="toAddress" placeholder="Base58 public key" value="C7HQ1D59fRdhq5fTguc6ARroWi9neB8gR3adXVweb9tw">
+      </div>
+      <div class="form-group">
+        <label>Amount</label>
+        <input type="number" id="amount" placeholder="Amount" value="1000000">
+      </div>
+      <div class="form-group">
+        <label>Fee</label>
+        <input type="number" id="fee" placeholder="Fee" value="1000">
+      </div>
+      <div class="form-group">
+        <label>Memo (optional)</label>
+        <input type="text" id="memo" placeholder="Invoice #123">
+      </div>
+      <button id="sendBtn" disabled>Send Transaction</button>
+    </div>
+
+    <div class="card">
+      <h2>Event Log</h2>
+      <div class="log" id="log"></div>
+    </div>
+  </div>
+
+  <script>
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
+    const connectBtn = document.getElementById('connectBtn');
+    const disconnectBtn = document.getElementById('disconnectBtn');
+    const accountDisplay = document.getElementById('accountDisplay');
+    const sendBtn = document.getElementById('sendBtn');
+    const logDiv = document.getElementById('log');
+
+    let isConnected = false;
+    let accounts = [];
+
+    function log(message, type = 'info') {
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      logDiv.insertBefore(entry, logDiv.firstChild);
+    }
+
+    function updateUI() {
+      if (!window.modulr) {
+        statusDot.className = 'status-dot not-installed';
+        statusText.textContent = 'Modulr Wallet not installed';
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = true;
+        sendBtn.disabled = true;
+        return;
+      }
+
+      if (isConnected && accounts.length > 0) {
+        statusDot.className = 'status-dot connected';
+        statusText.textContent = 'Connected';
+        connectBtn.disabled = true;
+        disconnectBtn.disabled = false;
+        sendBtn.disabled = false;
+        accountDisplay.style.display = 'block';
+        accountDisplay.textContent = accounts[0];
+      } else {
+        statusDot.className = 'status-dot';
+        statusText.textContent = 'Not connected';
+        connectBtn.disabled = false;
+        disconnectBtn.disabled = true;
+        sendBtn.disabled = true;
+        accountDisplay.style.display = 'none';
+      }
+    }
+
+    async function checkConnection() {
+      if (!window.modulr) {
+        log('Modulr Wallet not detected', 'error');
+        updateUI();
+        return;
+      }
+
+      log('Modulr Wallet detected');
+      
+      try {
+        isConnected = await window.modulr.isConnected();
+        if (isConnected) {
+          accounts = await window.modulr.getAccounts();
+          log(`Already connected with ${accounts.length} account(s)`, 'success');
+        }
+      } catch (err) {
+        log(`Error checking connection: ${err.message}`, 'error');
+      }
+      
+      updateUI();
+    }
+
+    connectBtn.addEventListener('click', async () => {
+      log('Requesting connection...');
+      try {
+        const result = await window.modulr.connect();
+        log(`Connection result: ${JSON.stringify(result)}`, 'success');
+        isConnected = result.connected;
+        accounts = result.accounts || [];
+        updateUI();
+      } catch (err) {
+        log(`Connection failed: ${err.message}`, 'error');
+      }
+    });
+
+    disconnectBtn.addEventListener('click', async () => {
+      log('Disconnecting...');
+      try {
+        await window.modulr.disconnect();
+        log('Disconnected', 'success');
+        isConnected = false;
+        accounts = [];
+        updateUI();
+      } catch (err) {
+        log(`Disconnect failed: ${err.message}`, 'error');
+      }
+    });
+
+    sendBtn.addEventListener('click', async () => {
+      const to = document.getElementById('toAddress').value;
+      const amount = parseInt(document.getElementById('amount').value, 10);
+      const fee = parseInt(document.getElementById('fee').value, 10);
+      const memo = document.getElementById('memo').value;
+
+      log(`Sending transaction: ${amount} to ${to.slice(0, 20)}...`);
+      
+      try {
+        const result = await window.modulr.sendTransaction({
+          to,
+          amount,
+          fee,
+          memo: memo || undefined
+        });
+        log(`Transaction result: ${JSON.stringify(result)}`, 'success');
+      } catch (err) {
+        log(`Transaction failed: ${err.message}`, 'error');
+      }
+    });
+
+    // Listen for Modulr events
+    window.addEventListener('modulr#initialized', () => {
+      log('Modulr initialized event received');
+      checkConnection();
+    });
+
+    // Check on load (with delay for injection)
+    setTimeout(checkConnection, 500);
+  </script>
+</body>
+</html>
+

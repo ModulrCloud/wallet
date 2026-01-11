@@ -1,11 +1,16 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Check, ChevronDown, Copy, Lock, Plus, QrCode, RefreshCw, Send, Settings } from 'lucide-react';
+import { Check, ChevronDown, Copy, Globe, Lock, Plus, QrCode, RefreshCw, Send, Settings, Trash2 } from 'lucide-react';
 
 import { useWallet } from '../state/wallet';
 import { PrimaryButton, SecondaryButton } from '../ui/components';
 
 type Tab = 'transactions' | 'connected' | 'usage';
+
+type ConnectedSite = {
+  connectedAt: number;
+  accounts: string[];
+};
 
 function shorten(value: string, left = 10, right = 8) {
   if (!value) return '—';
@@ -102,6 +107,43 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
   const [qrOpen, setQrOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+
+  // Connected sites
+  const [connectedSites, setConnectedSites] = useState<Record<string, ConnectedSite>>({});
+  const [sitesLoading, setSitesLoading] = useState(false);
+
+  const loadConnectedSites = async () => {
+    setSitesLoading(true);
+    try {
+      const chrome = (globalThis as any).chrome;
+      if (chrome?.runtime?.sendMessage) {
+        const response = await chrome.runtime.sendMessage({ type: 'MODULR_GET_CONNECTED_SITES' });
+        setConnectedSites(response?.sites ?? {});
+      }
+    } catch {
+      setConnectedSites({});
+    } finally {
+      setSitesLoading(false);
+    }
+  };
+
+  const disconnectSite = async (origin: string) => {
+    try {
+      const chrome = (globalThis as any).chrome;
+      if (chrome?.runtime?.sendMessage) {
+        await chrome.runtime.sendMessage({ type: 'MODULR_DISCONNECT_SITE', origin });
+        await loadConnectedSites();
+      }
+    } catch {
+      // ignore
+    }
+  };
+
+  useEffect(() => {
+    if (tab === 'connected') {
+      loadConnectedSites();
+    }
+  }, [tab]);
 
   useEffect(() => {
     wallet.refreshSelectedAccount();
@@ -374,9 +416,68 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
               ) : null}
             </>
           ) : tab === 'connected' ? (
-            <div className="flex items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-14 text-sm text-gray-400">
-              Connected sites — coming soon.
-            </div>
+            <>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-[11px] uppercase tracking-[0.18em] text-gray-400">Connected sites</p>
+                <button
+                  type="button"
+                  onClick={loadConnectedSites}
+                  className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-black/30 px-3 py-1.5 text-xs text-gray-200 transition hover:border-brand-accent/40"
+                >
+                  <RefreshCw className={['h-3.5 w-3.5', sitesLoading ? 'animate-spin' : ''].join(' ')} />
+                  Refresh
+                </button>
+              </div>
+
+              <div className="mt-4">
+                {Object.keys(connectedSites).length === 0 ? (
+                  <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-14 text-center">
+                    <Globe className="h-10 w-10 text-gray-500" />
+                    <p className="mt-3 text-sm text-gray-400">No connected sites</p>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Sites can request connection via <code className="rounded bg-black/30 px-1.5 py-0.5 font-mono text-[11px]">window.modulr.connect()</code>
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {Object.entries(connectedSites).map(([origin, site]) => {
+                      let hostname = origin;
+                      try {
+                        hostname = new URL(origin).hostname;
+                      } catch {
+                        // ignore
+                      }
+                      return (
+                        <div
+                          key={origin}
+                          className="flex items-center justify-between gap-4 rounded-xl border border-white/10 bg-black/30 px-4 py-3 transition hover:border-brand-accent/25"
+                        >
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-black/20">
+                              <Globe className="h-5 w-5 text-gray-400" />
+                            </div>
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-gray-100">{hostname}</p>
+                              <p className="mt-0.5 text-xs text-gray-500">
+                                Connected {new Date(site.connectedAt).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => disconnectSite(origin)}
+                            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-black/20 text-gray-300 transition hover:border-red-500/40 hover:bg-red-500/10 hover:text-red-200"
+                            title="Disconnect"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </>
           ) : (
             <div className="flex items-center justify-center rounded-2xl border border-dashed border-white/10 bg-black/10 px-4 py-14 text-sm text-gray-400">
               App usage — coming soon.
