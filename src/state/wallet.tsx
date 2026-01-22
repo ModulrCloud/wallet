@@ -73,7 +73,7 @@ function defaultData(): WalletDataV1 {
     accounts: [],
     txs: [],
     settings: {
-      nodeUrl: 'http://localhost:7332'
+      nodeUrl: ''
     }
   };
 }

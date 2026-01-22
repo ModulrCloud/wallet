@@ -66,7 +66,7 @@ export function Settings({ back }: { back: () => void }) {
                 <TextInput
                   value={nodeUrl}
                   onChange={(e) => setNodeUrl(e.target.value)}
-                  placeholder="http://localhost:7332"
+                  placeholder="Enter node URL"
                   className="h-11 w-full sm:w-[360px]"
                 />
                 <PrimaryButton

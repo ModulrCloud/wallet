@@ -65,3 +65,4 @@ If you have questions about this privacy policy, please contact us at:
 
 Modulr Wallet is open source. You can review the source code to verify our privacy practices.
 
+

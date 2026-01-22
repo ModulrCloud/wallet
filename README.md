@@ -43,7 +43,7 @@ Modulr Wallet is a secure Chrome/Chromium browser extension (Manifest V3) for th
 
 1. Open the wallet popup
 2. Go to **Settings**
-3. Set your **Node URL** (default: `http://localhost:7332`)
+3. Set your **Node URL** (required for account data and transactions)
 
 ## Development
 
