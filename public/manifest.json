@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Modulr Wallet",
-  "version": "1.0.0",
-  "description": "Secure cryptocurrency wallet for the Modulr blockchain. Send transactions, manage multiple accounts, and keep your keys safe with encrypted local storage.",
+  "version": "1.0.1",
+  "description": "A secure browser wallet for managing blockchain accounts and signing transactions on the Modulr network.",
   "homepage_url": "https://modulr.cloud",
   "action": {
     "default_title": "Modulr Wallet",
