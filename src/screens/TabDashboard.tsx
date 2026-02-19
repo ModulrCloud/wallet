@@ -7,6 +7,7 @@ import { PrimaryButton, SecondaryButton } from '../ui/components';
 import { Dialog } from '../ui/overlays';
 import { Drawer } from '../ui/overlays';
 import { useTheme } from '../ui/theme';
+import { formatNodeUrlForDisplay } from '../lib/rpc';
 
 type Tab = 'transactions' | 'connected' | 'usage';
 
@@ -117,8 +118,16 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [autoSpin, setAutoSpin] = useState(false);
 
   // Auto-refresh is now handled by WalletProvider
+
+  useEffect(() => {
+    if (!wallet.lastAutoRefreshAt) return;
+    setAutoSpin(true);
+    const t = window.setTimeout(() => setAutoSpin(false), 900);
+    return () => window.clearTimeout(t);
+  }, [wallet.lastAutoRefreshAt]);
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -328,7 +337,7 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
             }}
             title="Refresh balance"
           >
-            <RefreshCw className={['h-3.5 w-3.5', refreshing ? 'animate-spin' : ''].join(' ')} />
+            <RefreshCw className={['h-3.5 w-3.5', refreshing || autoSpin ? 'animate-spin' : ''].join(' ')} />
             {refreshing ? 'Refreshing…' : 'Refresh'}
           </button>
           <span className="text-xs text-app-muted">
@@ -356,7 +365,7 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
             <span className="relative inline-flex h-2 w-2 rounded-full bg-app-success" />
           </span>
           <span className="text-xs text-app-muted">Node</span>
-          <span className="font-mono text-xs text-app-text">{wallet.data?.settings.nodeUrl ?? '—'}</span>
+          <span className="font-mono text-xs text-app-text">{wallet.data?.settings.nodeUrl ? formatNodeUrlForDisplay(wallet.data.settings.nodeUrl) : '—'}</span>
         </div>
       </div>
 

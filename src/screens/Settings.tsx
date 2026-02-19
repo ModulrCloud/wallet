@@ -7,13 +7,16 @@ import { storageGet } from '../lib/chromeStorage';
 import { openVaultJson, type VaultEnvelopeV1 } from '../lib/vault';
 import { PageHeader } from '../ui/header';
 import { useTheme } from '../ui/theme';
+import { AUTO_NODE_URL, DEFAULT_RPC_URLS, isAutoNodeUrl } from '../lib/rpc';
 
 export function Settings({ back }: { back: () => void }) {
   const wallet = useWallet();
   const theme = useTheme();
   const isTab = useMemo(() => document.documentElement.dataset.mode === 'tab', []);
-  const current = wallet.data?.settings.nodeUrl ?? '';
-  const [nodeUrl, setNodeUrl] = useState(current);
+  const stored = wallet.data?.settings.nodeUrl ?? AUTO_NODE_URL;
+  const storedIsAuto = useMemo(() => isAutoNodeUrl(stored) || stored.trim().length === 0, [stored]);
+  const [rpcMode, setRpcMode] = useState<'defaults' | 'custom'>(storedIsAuto ? 'defaults' : 'custom');
+  const [customNodeUrl, setCustomNodeUrl] = useState(storedIsAuto ? '' : stored);
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   const [importOpen, setImportOpen] = useState(false);
@@ -31,7 +34,16 @@ export function Settings({ back }: { back: () => void }) {
     return () => window.clearTimeout(t);
   }, [exportErr]);
 
-  const changed = useMemo(() => nodeUrl.trim() !== current.trim(), [nodeUrl, current]);
+  useEffect(() => {
+    // Sync local settings with persisted data (e.g., after migrations/session-unlock).
+    setRpcMode(storedIsAuto ? 'defaults' : 'custom');
+    setCustomNodeUrl(storedIsAuto ? '' : stored);
+  }, [storedIsAuto, stored]);
+
+  const changed = useMemo(() => {
+    if (rpcMode === 'defaults') return !storedIsAuto;
+    return customNodeUrl.trim() !== stored.trim();
+  }, [rpcMode, customNodeUrl, stored, storedIsAuto]);
 
   return (
     <Screen
@@ -58,36 +70,136 @@ export function Settings({ back }: { back: () => void }) {
                 <p className="text-[11px] uppercase tracking-[0.18em] text-app-muted">Node URL</p>
                 <p className="mt-1 text-xs text-app-muted">Used to get account data and send transactions</p>
               </div>
-              <div className="flex items-center gap-2">
-                <TextInput
-                  value={nodeUrl}
-                  onChange={(e) => setNodeUrl(e.target.value)}
-                  placeholder="Enter node URL"
-                  className="h-11 w-full sm:w-[360px]"
-                />
-                <PrimaryButton
-                  fullWidth={false}
-                  className="h-11 px-6"
-                  loading={saving}
-                  disabled={!changed || saving}
-                  onClick={async () => {
-                    setErr(null);
-                    setSaving(true);
-                    try {
-                      await wallet.setNodeUrl(nodeUrl.trim());
-                      await wallet.refreshSelectedAccount();
-                      back();
-                    } catch (e: any) {
-                      setErr(e?.message ?? 'Failed to save');
-                    } finally {
-                      setSaving(false);
-                    }
-                  }}
-                >
-                  Save
-                </PrimaryButton>
+              <div className="flex flex-col items-stretch gap-2 sm:items-end">
+                <div className="grid w-full grid-cols-2 overflow-hidden rounded-xl border border-app-border bg-app-surface sm:w-[360px]">
+                  <button
+                    type="button"
+                    className={[
+                      'px-4 py-2.5 text-sm font-semibold transition',
+                      'border-r border-app-border',
+                      'outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/30 focus-visible:ring-inset',
+                      rpcMode === 'defaults' ? 'bg-app-accent/15 text-app-text' : 'text-app-muted hover:bg-app-surface2'
+                    ].join(' ')}
+                    onClick={() => setRpcMode('defaults')}
+                  >
+                    Defaults
+                  </button>
+                  <button
+                    type="button"
+                    className={[
+                      'px-4 py-2.5 text-sm font-semibold transition',
+                      'outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/30 focus-visible:ring-inset',
+                      rpcMode === 'custom' ? 'bg-app-accent/15 text-app-text' : 'text-app-muted hover:bg-app-surface2'
+                    ].join(' ')}
+                    onClick={() => setRpcMode('custom')}
+                  >
+                    Custom
+                  </button>
+                </div>
+
+                {rpcMode === 'custom' ? (
+                  <div className="w-full sm:w-[360px]">
+                    <TextInput
+                      value={customNodeUrl}
+                      onChange={(e) => setCustomNodeUrl(e.target.value)}
+                      placeholder="Enter node URL"
+                      className="h-11 w-full"
+                    />
+                    <div className="mt-2 flex items-center justify-end gap-2">
+                      <SecondaryButton
+                        fullWidth={false}
+                        className="h-11 px-5 whitespace-nowrap"
+                        disabled={saving || storedIsAuto}
+                        onClick={async () => {
+                          setErr(null);
+                          setSaving(true);
+                          try {
+                            await wallet.setNodeUrl(AUTO_NODE_URL);
+                            await wallet.refreshSelectedAccount();
+                            back();
+                          } catch (e: any) {
+                            setErr(e?.message ?? 'Failed to save');
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Use defaults
+                      </SecondaryButton>
+                      <PrimaryButton
+                        fullWidth={false}
+                        className="h-11 px-6"
+                        loading={saving}
+                        disabled={!changed || saving}
+                        onClick={async () => {
+                          const next = customNodeUrl.trim();
+                          if (!next) {
+                            setErr('Enter a node URL or use defaults');
+                            return;
+                          }
+                          setErr(null);
+                          setSaving(true);
+                          try {
+                            await wallet.setNodeUrl(next);
+                            await wallet.refreshSelectedAccount();
+                            back();
+                          } catch (e: any) {
+                            setErr(e?.message ?? 'Failed to save');
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Save
+                      </PrimaryButton>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex w-full items-center justify-end sm:w-[360px]">
+                    {!storedIsAuto ? (
+                      <PrimaryButton
+                        fullWidth={false}
+                        className="h-11 px-6"
+                        loading={saving}
+                        disabled={saving}
+                        onClick={async () => {
+                          setErr(null);
+                          setSaving(true);
+                          try {
+                            await wallet.setNodeUrl(AUTO_NODE_URL);
+                            await wallet.refreshSelectedAccount();
+                            back();
+                          } catch (e: any) {
+                            setErr(e?.message ?? 'Failed to save');
+                          } finally {
+                            setSaving(false);
+                          }
+                        }}
+                      >
+                        Use defaults
+                      </PrimaryButton>
+                    ) : (
+                      <div className="text-xs font-semibold text-app-muted">Using defaults</div>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
+            {rpcMode === 'defaults' ? (
+              <div className="mt-3 rounded-xl border border-app-border bg-app-surface px-3 py-2 text-xs text-app-muted">
+                <p className="font-semibold text-app-text">Default RPCs (auto)</p>
+                <p className="mt-1">Load-balanced 50/50 per request with automatic failover.</p>
+                <div className="mt-2 space-y-1 font-mono text-[11px] text-app-text break-all">
+                  <div>{DEFAULT_RPC_URLS[0]}</div>
+                  <div>{DEFAULT_RPC_URLS[1]}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="mt-3 rounded-xl border border-app-border bg-app-surface px-3 py-2 text-xs text-app-muted">
+                <p className="font-semibold text-app-text">Custom RPC</p>
+                <p className="mt-1">Used exclusively (no fallback to defaults).</p>
+              </div>
+            )}
             <div className="mt-2 min-h-[20px]">
               {err ? (
                 <p className="text-sm text-app-danger">{err}</p>
@@ -105,11 +217,13 @@ export function Settings({ back }: { back: () => void }) {
                 <p className="text-[11px] uppercase tracking-[0.18em] text-app-muted">Theme</p>
                 <p className="mt-1 text-xs text-app-muted">Switch between light and dark</p>
               </div>
-              <div className="inline-flex overflow-hidden rounded-xl border border-app-border bg-app-surface">
+              <div className="grid w-full grid-cols-2 overflow-hidden rounded-xl border border-app-border bg-app-surface sm:w-[360px]">
                 <button
                   type="button"
                   className={[
-                    'px-4 py-2 text-sm font-semibold transition',
+                    'px-4 py-2.5 text-sm font-semibold transition',
+                    'border-r border-app-border',
+                    'outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/30 focus-visible:ring-inset',
                     theme.mode === 'light' ? 'bg-app-accent/15 text-app-text' : 'text-app-muted hover:bg-app-surface2'
                   ].join(' ')}
                   onClick={() => theme.setMode('light')}
@@ -119,7 +233,8 @@ export function Settings({ back }: { back: () => void }) {
                 <button
                   type="button"
                   className={[
-                    'px-4 py-2 text-sm font-semibold transition',
+                    'px-4 py-2.5 text-sm font-semibold transition',
+                    'outline-none focus-visible:ring-2 focus-visible:ring-brand-accent/30 focus-visible:ring-inset',
                     theme.mode === 'dark' ? 'bg-app-accent/15 text-app-text' : 'text-app-muted hover:bg-app-surface2'
                   ].join(' ')}
                   onClick={() => theme.setMode('dark')}

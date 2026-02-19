@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Check, Copy, History, Lock, Moon, QrCode, RefreshCw, Send, Settings, Sun } from 'lucide-react';
 import { useWallet, type WalletTxRecord } from '../state/wallet';
 import { IconButton, OpenInTabButton, Screen, SecondaryButton } from '../ui/components';
@@ -27,6 +27,7 @@ export function Home({
   const selected = wallet.selectedAccount;
   const [acctOpen, setAcctOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [autoSpin, setAutoSpin] = useState(false);
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
@@ -39,6 +40,13 @@ export function Home({
   void _onTxClick;
 
   const isDark = theme.mode === 'dark';
+
+  useEffect(() => {
+    if (!wallet.lastAutoRefreshAt) return;
+    setAutoSpin(true);
+    const t = window.setTimeout(() => setAutoSpin(false), 900);
+    return () => window.clearTimeout(t);
+  }, [wallet.lastAutoRefreshAt]);
 
   return (
     <Screen variant="plain" className="p-0 overflow-hidden">
@@ -168,7 +176,7 @@ export function Home({
                 }
               }}
             >
-              <RefreshCw className={['h-3.5 w-3.5', refreshing ? 'animate-spin' : ''].join(' ')} />
+              <RefreshCw className={['h-3.5 w-3.5', refreshing || autoSpin ? 'animate-spin' : ''].join(' ')} />
               {refreshing ? 'Refreshing…' : 'Refresh'}
             </button>
             <span className={['text-xs', isDark ? 'text-white/70' : 'text-app-muted'].join(' ')}>

@@ -11,6 +11,7 @@ import {
 import { generateNewDefaultAccount, generateAccountFromMnemonic, type GeneratedAccount } from '../lib/crypto/ed25519';
 import { fetchAccount } from '../lib/nodeApi';
 import { generateMockTxs } from '../lib/mockTxs';
+import { AUTO_NODE_URL } from '../lib/rpc';
 
 const STORAGE_VAULT_KEY = 'modulr.vault.v1';
 const SESSION_UNLOCK_KEY = 'modulr.session.unlock.v1';
@@ -59,6 +60,7 @@ type WalletContextValue = {
   selectAccount: (accountId: string) => Promise<void>;
   refreshSelectedAccount: () => Promise<void>;
   refreshSelectedAccountThrottled: () => Promise<void>;
+  lastAutoRefreshAt: number;
   selectedAccount: GeneratedAccount | null;
   selectedAccountState: { balance: number; nonce: number } | null;
   setNodeUrl: (url: string) => Promise<void>;
@@ -76,7 +78,7 @@ function defaultData(): WalletDataV1 {
     accounts: [],
     txs: [],
     settings: {
-      nodeUrl: ''
+      nodeUrl: AUTO_NODE_URL
     }
   };
 }
@@ -88,6 +90,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = useState<string | null>(null);
   const [vaultKeyB64, setVaultKeyB64] = useState<string | null>(null);
   const [selectedAccountState, setSelectedAccountState] = useState<{ balance: number; nonce: number } | null>(null);
+  const [lastAutoRefreshAt, setLastAutoRefreshAt] = useState(0);
   const mockMode = useMemo(() => {
     try {
       if (!(import.meta as any).env?.DEV) return false;
@@ -298,6 +301,25 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [data, selectedAccount]);
 
+  const refreshSelectedAccountAuto = useCallback(async () => {
+    if (!data || !selectedAccount) return;
+    const nodeUrl = data.settings.nodeUrl;
+    const accountPub = selectedAccount.pub;
+    const requestId = ++fetchRequestIdRef.current;
+    try {
+      const state = await fetchAccount(nodeUrl, accountPub);
+      if (requestId === fetchRequestIdRef.current) {
+        setSelectedAccountState(state);
+      }
+    } catch {
+      if (requestId === fetchRequestIdRef.current) {
+        setSelectedAccountState(null);
+      }
+    } finally {
+      if (requestId === fetchRequestIdRef.current) setLastAutoRefreshAt(Date.now());
+    }
+  }, [data, selectedAccount]);
+
   const refreshSelectedAccountThrottled = useCallback(async () => {
     const now = Date.now();
     if (now - lastManualRefreshAtRef.current < MANUAL_REFRESH_THROTTLE_MS) return;
@@ -308,33 +330,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   // Auto-refresh account state when selected account or node URL changes
   useEffect(() => {
     if (status !== 'unlocked' || !selectedAccount || !data?.settings.nodeUrl) return;
-    
-    const nodeUrl = data.settings.nodeUrl;
-    const accountPub = selectedAccount.pub;
-    const requestId = ++fetchRequestIdRef.current;
-
-    (async () => {
-      try {
-        const state = await fetchAccount(nodeUrl, accountPub);
-        if (requestId === fetchRequestIdRef.current) {
-          setSelectedAccountState(state);
-        }
-      } catch {
-        if (requestId === fetchRequestIdRef.current) {
-          setSelectedAccountState(null);
-        }
-      }
-    })();
-  }, [status, selectedAccount?.pub, data?.settings.nodeUrl]);
+    refreshSelectedAccountAuto().catch(() => {});
+  }, [status, selectedAccount?.pub, data?.settings.nodeUrl, refreshSelectedAccountAuto]);
 
   // Periodic auto-refresh (keep balance/nonce fresh)
   useEffect(() => {
     if (status !== 'unlocked' || !selectedAccount || !data?.settings.nodeUrl) return;
     const id = window.setInterval(() => {
-      refreshSelectedAccount().catch(() => {});
+      refreshSelectedAccountAuto().catch(() => {});
     }, ACCOUNT_AUTO_REFRESH_MS);
     return () => window.clearInterval(id);
-  }, [status, selectedAccount?.pub, data?.settings.nodeUrl, refreshSelectedAccount]);
+  }, [status, selectedAccount?.pub, data?.settings.nodeUrl, refreshSelectedAccountAuto]);
 
   const setNodeUrl = useCallback(
     async (url: string) => {
@@ -344,6 +350,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     },
     [data, save]
   );
+
+  // Migration: older vaults may have empty nodeUrl. Treat that as "auto defaults".
+  useEffect(() => {
+    if (status !== 'unlocked') return;
+    if (!data) return;
+    if (data.settings.nodeUrl && data.settings.nodeUrl.trim().length > 0) return;
+    setNodeUrl(AUTO_NODE_URL).catch(() => {});
+  }, [status, data, setNodeUrl]);
 
   // Use a ref to always have access to the latest data for tx operations
   const dataRef = React.useRef(data);
@@ -399,6 +413,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     selectAccount,
     refreshSelectedAccount,
     refreshSelectedAccountThrottled,
+    lastAutoRefreshAt,
     selectedAccount,
     selectedAccountState,
     setNodeUrl,
