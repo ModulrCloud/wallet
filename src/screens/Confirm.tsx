@@ -28,10 +28,10 @@ export function Confirm({ back, draft, done }: { back: () => void; draft: SendDr
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-4">
-          <img src="/brand/modulr.svg" alt="Modulr" className="h-12 w-12 rounded-2xl border border-white/10 bg-black/20 p-2" />
+          <img src="/brand/modulr.svg" alt="Modulr" className="h-12 w-12 rounded-2xl border border-app-border bg-app-surface p-2" />
           <div className="min-w-0">
-            <p className="text-xs uppercase tracking-[0.25em] text-gray-400">Confirm</p>
-            <p className="mt-1 text-sm font-semibold text-gray-100">Review & submit</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-app-muted">Confirm</p>
+            <p className="mt-1 text-sm font-semibold text-app-text">Review & submit</p>
           </div>
         </div>
 
@@ -45,57 +45,57 @@ export function Confirm({ back, draft, done }: { back: () => void; draft: SendDr
 
       {/* Content */}
       <div className="mt-8">
-        <div className="rounded-3xl border border-white/10 bg-black/20 p-6">
-          <p className="text-xs font-medium tracking-wide text-gray-400">Transaction summary</p>
+        <div className="rounded-3xl border border-app-border bg-app-surface p-6 shadow-[0_20px_60px_rgba(0,0,0,0.22)]">
+          <p className="text-xs font-medium tracking-wide text-app-muted">Transaction summary</p>
 
           <div className="mt-4 space-y-3">
             {/* From */}
-            <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-4 transition hover:border-brand-accent/25">
-              <p className="text-xs font-medium tracking-wide text-gray-400">From</p>
-              <p className="mt-2 break-all font-mono text-sm text-gray-100">{account?.pub ?? '—'}</p>
+            <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
+              <p className="text-xs font-medium tracking-wide text-app-muted">From</p>
+              <p className="mt-2 break-all font-mono text-sm text-app-text">{account?.pub ?? '—'}</p>
             </div>
 
             {/* To */}
-            <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-4 transition hover:border-brand-accent/25">
-              <p className="text-xs font-medium tracking-wide text-gray-400">To</p>
-              <p className="mt-2 break-all font-mono text-sm text-gray-100">{draft.to}</p>
+            <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
+              <p className="text-xs font-medium tracking-wide text-app-muted">To</p>
+              <p className="mt-2 break-all font-mono text-sm text-app-text">{draft.to}</p>
             </div>
 
             {/* Amount / Fee */}
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-4 transition hover:border-brand-accent/25">
-                <p className="text-xs font-medium tracking-wide text-gray-400">Amount</p>
-                <p className="mt-2 font-mono text-lg font-semibold text-gray-100">{draft.amount}</p>
+              <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
+                <p className="text-xs font-medium tracking-wide text-app-muted">Amount</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{draft.amount}</p>
               </div>
-              <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-4 transition hover:border-brand-accent/25">
-                <p className="text-xs font-medium tracking-wide text-gray-400">Fee</p>
-                <p className="mt-2 font-mono text-lg font-semibold text-gray-100">{draft.fee}</p>
+              <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
+                <p className="text-xs font-medium tracking-wide text-app-muted">Fee</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{draft.fee}</p>
               </div>
             </div>
 
             {/* Memo (if present) */}
             {draft.memo ? (
-              <div className="rounded-xl border border-white/10 bg-black/30 px-4 py-4 transition hover:border-brand-accent/25">
-                <p className="text-xs font-medium tracking-wide text-gray-400">Memo</p>
-                <p className="mt-2 text-sm text-gray-200">{draft.memo}</p>
+              <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
+                <p className="text-xs font-medium tracking-wide text-app-muted">Memo</p>
+                <p className="mt-2 text-sm text-app-text">{draft.memo}</p>
               </div>
             ) : null}
 
             {/* Error */}
             {err ? (
-              <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-4">
-                <p className="text-xs font-medium tracking-wide text-red-200/80">Error</p>
-                <p className="mt-2 text-sm text-red-200">{err}</p>
+              <div className="rounded-xl border border-app-danger/20 bg-app-danger/5 px-4 py-4">
+                <p className="text-xs font-medium tracking-wide text-app-danger/80">Error</p>
+                <p className="mt-2 text-sm text-app-danger">{err}</p>
               </div>
             ) : null}
 
             {/* Success */}
             {ok ? (
-              <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-4">
-                <CheckCircle2 className="h-6 w-6 text-emerald-300" />
+              <div className="flex items-center gap-3 rounded-xl border border-app-success/20 bg-app-success/10 px-4 py-4">
+                <CheckCircle2 className="h-6 w-6 text-app-success" />
                 <div>
-                  <p className="text-sm font-semibold text-emerald-200">Transaction submitted</p>
-                  <p className="mt-1 text-xs text-emerald-300/70">Redirecting to home…</p>
+                  <p className="text-sm font-semibold text-app-success">Transaction submitted</p>
+                  <p className="mt-1 text-xs text-app-muted">Redirecting to home…</p>
                 </div>
               </div>
             ) : null}
@@ -171,7 +171,7 @@ export function Confirm({ back, draft, done }: { back: () => void; draft: SendDr
             </PrimaryButton>
           </div>
 
-          <p className="mt-4 text-center text-xs text-gray-500">
+          <p className="mt-4 text-center text-xs text-app-muted">
             Signature is generated locally. Tx id is the BLAKE3 hash of the transaction preimage.
           </p>
         </div>

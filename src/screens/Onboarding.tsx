@@ -43,10 +43,10 @@ export function Onboarding() {
           <img
             src="/brand/modulr.svg"
             alt="Modulr"
-            className="h-20 w-20 rounded-3xl border border-white/10 bg-black/20 p-3 shadow-[0_18px_38px_rgba(0,0,0,0.55)]"
+            className="h-20 w-20 rounded-3xl border border-app-border bg-app-surface p-3 shadow-[0_18px_38px_rgba(0,0,0,0.35)]"
           />
-          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-gray-100">Create Wallet</h1>
-          <p className="mt-2 text-sm text-gray-400">Choose a password to protect your encrypted storage</p>
+          <h1 className="mt-5 text-2xl font-semibold tracking-tight text-app-text">Create Wallet</h1>
+          <p className="mt-2 text-sm text-app-muted">Choose a password to protect your encrypted storage</p>
         </div>
 
         <div className="mt-6 space-y-3">
@@ -79,7 +79,7 @@ export function Onboarding() {
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: 4 }}
-                  className="absolute inset-0 text-sm leading-5 text-red-200"
+                  className="absolute inset-0 text-sm leading-5 text-app-danger"
                 >
                   {helperText}
                 </motion.p>
@@ -98,7 +98,7 @@ export function Onboarding() {
           </PrimaryButton>
         </div>
 
-        <p className="mt-5 text-center text-xs text-gray-500">
+        <p className="mt-5 text-center text-xs text-app-muted">
           Keep your password and recovery phrase in a safe place. We don’t have access to them and can’t help with recovery.
         </p>
       </form>

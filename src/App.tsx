@@ -5,17 +5,18 @@ import { Onboarding } from './screens/Onboarding';
 import { Unlock } from './screens/Unlock';
 import { Home, type HomeNav } from './screens/Home';
 import { Settings } from './screens/Settings';
-import { Send, type SendDraft } from './screens/Send';
-import { Confirm } from './screens/Confirm';
 import { TabDashboard } from './screens/TabDashboard';
 import { TxDetails } from './screens/TxDetails';
+import { ToastProvider } from './ui/toast';
+import { Transfer } from './screens/Transfer';
+import { ThemeProvider } from './ui/theme';
+import { Transactions } from './screens/Transactions';
 
-type Route = HomeNav | 'confirm' | 'tx_details';
+type Route = HomeNav | 'tx_details';
 
 function AppInner() {
   const wallet = useWallet();
   const [nav, setNav] = useState<Route>('home');
-  const [draft, setDraft] = useState<SendDraft | null>(null);
   const [selectedTx, setSelectedTx] = useState<WalletTxRecord | null>(null);
   const isTab = useMemo(() => document.documentElement.dataset.mode === 'tab', []);
 
@@ -29,13 +30,13 @@ function AppInner() {
   const isAuthLike = isTab && (screen === 'loading' || screen === 'onboarding' || screen === 'unlock');
 
   return (
-    <div className={isTab ? 'min-h-screen w-full px-10 pb-10 pt-16' : 'min-h-[520px] min-w-[420px] p-4'}>
-      <div className={isTab ? (isAuthLike ? 'mx-auto w-full max-w-md' : 'w-full') : ''}>
+    <div className={isTab ? 'min-h-screen w-full px-10 pb-10 pt-16' : 'min-h-[640px] w-[420px] p-3'}>
+      <div className={isTab ? (isAuthLike ? 'mx-auto w-full max-w-md' : 'w-full') : 'w-full'}>
       <AnimatePresence mode="wait">
         {screen === 'loading' ? (
           <div key="loading" className="glow-card gradient-border rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-[0.25em] text-gray-400">Loading</p>
-            <p className="mt-2 text-sm text-gray-200">Preparing wallet…</p>
+            <p className="text-xs uppercase tracking-[0.25em] text-app-muted">Loading</p>
+            <p className="mt-2 text-sm text-app-text">Preparing wallet…</p>
           </div>
         ) : null}
 
@@ -88,38 +89,25 @@ function AppInner() {
           />
         ) : null}
 
-        {screen === 'send' ? (
-          <Send
-            key="send"
+        {screen === 'transactions' ? (
+          <Transactions
+            key="transactions"
             back={() => setNav('home')}
-            next={(d) => {
-              setDraft(d);
-              setNav('confirm');
+            onTxClick={(tx) => {
+              setSelectedTx(tx);
+              setNav('tx_details');
             }}
           />
         ) : null}
 
-        {screen === 'confirm' ? (
-          draft ? (
-            <Confirm
-              key="confirm"
-              draft={draft}
-              back={() => setNav('send')}
-              done={() => {
-                setDraft(null);
-                setNav('home');
-              }}
-            />
-          ) : (
-            <Send
-              key="send-fallback"
-              back={() => setNav('home')}
-              next={(d) => {
-                setDraft(d);
-                setNav('confirm');
-              }}
-            />
-          )
+        {screen === 'send' ? (
+          <Transfer
+            key="send"
+            back={() => setNav('home')}
+            done={() => {
+              setNav('home');
+            }}
+          />
         ) : null}
       </AnimatePresence>
       </div>
@@ -129,8 +117,12 @@ function AppInner() {
 
 export default function App() {
   return (
-    <WalletProvider>
-      <AppInner />
-    </WalletProvider>
+    <ThemeProvider>
+      <ToastProvider>
+        <WalletProvider>
+          <AppInner />
+        </WalletProvider>
+      </ToastProvider>
+    </ThemeProvider>
   );
 }

@@ -3,30 +3,90 @@
 @tailwind utilities;
 
 :root {
+  color-scheme: light;
+  /* App tokens (Rabby-like light UI, but not a direct copy) */
+  --app-bg: 245 246 250; /* #F5F6FA */
+  --app-surface: 255 255 255; /* #FFFFFF */
+  --app-surface-2: 245 246 250; /* #F5F6FA */
+  --app-border: 229 233 239; /* #E5E9EF */
+  --app-text: 19 20 26; /* #13141A */
+  --app-muted: 112 114 128; /* #707280 */
+  /* Primary actions (buttons): black */
+  --app-primary: 19 20 26; /* near-black */
+  --app-primary-2: 0 0 0;
+  --app-on-primary: 255 255 255;
+
+  /* Modulr brand accents (gold/amber) */
+  --app-accent: 245 180 0; /* #f5b400 */
+  --app-accent-2: 252 211 77; /* #fcd34d */
+  --app-danger: 242 72 34; /* #F24822 */
+  --app-success: 39 193 147; /* #27C193 */
+  --app-warning: 242 156 27; /* #F29C1B */
+
+  /* Back-compat tokens used around the UI */
+  --brand-bg: var(--app-bg);
+  --brand-panel: var(--app-surface);
+  --brand-panel-2: var(--app-surface-2);
+  --brand-accent: var(--app-accent);
+  --brand-accent-2: var(--app-accent-2);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+html.dark {
   color-scheme: dark;
-  --brand-bg: 0 0 0;
-  --brand-panel: 10 10 12;
-  --brand-panel-2: 14 14 18;
-  --brand-accent: 245 180 0; /* #f5b400 */
-  --brand-accent-2: 252 211 77; /* amber-300 */
+  /* True black theme (black + gold) */
+  --app-bg: 0 0 0;
+  --app-surface: 12 12 12;
+  --app-surface-2: 7 7 7;
+  --app-border: 52 52 52; /* subtle neutral border */
+  --app-text: 246 246 246;
+  --app-muted: 165 165 165;
+  /* Primary actions: near-white on dark */
+  --app-primary: 245 245 245;
+  --app-primary-2: 255 255 255;
+  --app-on-primary: 19 20 26;
+  /* Accents stay gold */
+  --app-accent: 245 180 0;
+  --app-accent-2: 252 211 77;
+  --app-danger: 242 72 34;
+  --app-success: 39 193 147;
+  --app-warning: 242 156 27;
 }
 
 body {
   margin: 0;
-  min-width: 420px;
+  min-width: 400px;
   background:
-    radial-gradient(circle at 12% 18%, rgb(var(--brand-accent) / 0.10), transparent 30%),
-    radial-gradient(circle at 82% 10%, rgb(var(--brand-accent-2) / 0.10), transparent 28%),
-    radial-gradient(circle at 60% 85%, rgb(168 85 247 / 0.06), transparent 32%),
-    rgb(var(--brand-bg));
-  color: #f7f7f7;
+    radial-gradient(circle at 12% 18%, rgb(var(--app-accent) / 0.10), transparent 30%),
+    radial-gradient(circle at 82% 10%, rgb(var(--app-accent-2) / 0.10), transparent 28%),
+    radial-gradient(circle at 60% 85%, rgb(var(--app-accent) / 0.06), transparent 32%),
+    rgb(var(--app-bg));
+  color: rgb(var(--app-text));
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-size: cover;
 }
 
+html.dark body {
+  background:
+    radial-gradient(circle at 18% 18%, rgb(var(--app-accent) / 0.06), transparent 32%),
+    radial-gradient(circle at 84% 12%, rgb(var(--app-accent-2) / 0.04), transparent 30%),
+    radial-gradient(circle at 60% 85%, rgb(var(--app-accent) / 0.03), transparent 38%),
+    radial-gradient(circle at 50% 8%, rgb(255 255 255 / 0.04), transparent 50%),
+    rgb(var(--app-bg));
+}
+
 /* Popup vs Tab mode sizing */
 html[data-mode="popup"] body {
-  min-height: 520px;
+  width: 420px;
+  min-width: 420px;
+  height: 640px;
+  min-height: 640px;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 html[data-mode="tab"] {
@@ -37,14 +97,6 @@ html[data-mode="tab"] {
 html[data-mode="tab"] body {
   min-height: 100vh;
   min-width: 100%;
-}
-
-html[data-mode="tab"] .glow-card {
-  border-radius: 24px;
-}
-
-html[data-mode="tab"] .gradient-border::after {
-  border-radius: 24px;
 }
 
 /* Micro-interactions */
@@ -59,6 +111,7 @@ html[data-mode="tab"] .gradient-border::after {
   100% { transform: translate3d(6px,0,0); }
 }
 
+/* Legacy classes kept for compatibility (now map to light surfaces). */
 .gradient-border {
   position: relative;
   overflow: hidden;
@@ -70,12 +123,7 @@ html[data-mode="tab"] .gradient-border::after {
   inset: 0;
   border-radius: 16px;
   padding: 1px;
-  background: linear-gradient(
-    120deg,
-    rgb(var(--brand-accent) / 0.85),
-    rgba(255, 255, 255, 0.12),
-    rgb(var(--brand-accent-2) / 0.75)
-  );
+  background: linear-gradient(135deg, rgb(var(--app-accent) / 0.55), rgb(var(--app-accent-2) / 0.18), rgb(0 0 0 / 0));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
           mask-composite: exclude;
@@ -83,12 +131,24 @@ html[data-mode="tab"] .gradient-border::after {
 }
 
 .glow-card {
-  background:
-    radial-gradient(circle at 22% 16%, rgb(var(--brand-accent) / 0.10), transparent 48%),
-    radial-gradient(circle at 80% 35%, rgb(var(--brand-accent-2) / 0.07), transparent 42%),
-    rgb(var(--brand-panel) / 0.88);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 12px 46px rgba(0, 0, 0, 0.55), 0 0 0 1px rgb(var(--brand-accent) / 0.08);
-  backdrop-filter: blur(6px);
-  }
+  background: rgb(var(--app-surface) / 0.92);
+  border: 1px solid rgb(var(--app-border) / 0.9);
+  box-shadow:
+    0 20px 50px rgb(0 0 0 / 0.10),
+    0 1px 0 rgb(255 255 255 / 0.65) inset;
+  backdrop-filter: blur(10px);
+}
+
+html.dark .gradient-border::after {
+  background: linear-gradient(135deg, rgb(var(--app-accent) / 0.38), rgb(var(--app-accent-2) / 0.12), rgb(0 0 0 / 0));
+}
+
+html.dark .glow-card {
+  background: rgb(var(--app-surface) / 0.78);
+  border: 1px solid rgb(var(--app-border) / 0.60);
+  box-shadow:
+    0 40px 120px rgb(0 0 0 / 0.60),
+    0 1px 0 rgb(255 255 255 / 0.08) inset;
+  backdrop-filter: blur(12px);
+}
 

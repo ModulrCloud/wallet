@@ -15,6 +15,8 @@ import { generateMockTxs } from '../lib/mockTxs';
 const STORAGE_VAULT_KEY = 'modulr.vault.v1';
 const SESSION_UNLOCK_KEY = 'modulr.session.unlock.v1';
 const DEFAULT_UNLOCK_TTL_MS = 15 * 60 * 1000;
+const ACCOUNT_AUTO_REFRESH_MS = 10 * 1000;
+const MANUAL_REFRESH_THROTTLE_MS = 1500;
 
 export type WalletTxRecord = {
   id: string;
@@ -56,6 +58,7 @@ type WalletContextValue = {
   importAccountFromSeedPhrase: (params: { name?: string; mnemonic: string; mnemonicPassword?: string }) => Promise<void>;
   selectAccount: (accountId: string) => Promise<void>;
   refreshSelectedAccount: () => Promise<void>;
+  refreshSelectedAccountThrottled: () => Promise<void>;
   selectedAccount: GeneratedAccount | null;
   selectedAccountState: { balance: number; nonce: number } | null;
   setNodeUrl: (url: string) => Promise<void>;
@@ -258,6 +261,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
 
   // Track the current fetch request to prevent race conditions
   const fetchRequestIdRef = React.useRef(0);
+  const lastManualRefreshAtRef = React.useRef(0);
 
   const txs = useMemo(() => {
     const real = data?.txs ?? [];
@@ -294,6 +298,13 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [data, selectedAccount]);
 
+  const refreshSelectedAccountThrottled = useCallback(async () => {
+    const now = Date.now();
+    if (now - lastManualRefreshAtRef.current < MANUAL_REFRESH_THROTTLE_MS) return;
+    lastManualRefreshAtRef.current = now;
+    await refreshSelectedAccount();
+  }, [refreshSelectedAccount]);
+
   // Auto-refresh account state when selected account or node URL changes
   useEffect(() => {
     if (status !== 'unlocked' || !selectedAccount || !data?.settings.nodeUrl) return;
@@ -315,6 +326,15 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       }
     })();
   }, [status, selectedAccount?.pub, data?.settings.nodeUrl]);
+
+  // Periodic auto-refresh (keep balance/nonce fresh)
+  useEffect(() => {
+    if (status !== 'unlocked' || !selectedAccount || !data?.settings.nodeUrl) return;
+    const id = window.setInterval(() => {
+      refreshSelectedAccount().catch(() => {});
+    }, ACCOUNT_AUTO_REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [status, selectedAccount?.pub, data?.settings.nodeUrl, refreshSelectedAccount]);
 
   const setNodeUrl = useCallback(
     async (url: string) => {
@@ -378,6 +398,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     importAccountFromSeedPhrase,
     selectAccount,
     refreshSelectedAccount,
+    refreshSelectedAccountThrottled,
     selectedAccount,
     selectedAccountState,
     setNodeUrl,
