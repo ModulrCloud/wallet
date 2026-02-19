@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Modulr Wallet",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A secure browser wallet for managing blockchain accounts and signing transactions on the Modulr network.",
   "homepage_url": "https://modulr.cloud",
   "action": {
