@@ -8,6 +8,7 @@ import { Dialog } from '../ui/overlays';
 import { Drawer } from '../ui/overlays';
 import { useTheme } from '../ui/theme';
 import { formatNodeUrlForDisplay } from '../lib/rpc';
+import { formatNativeUnits } from '../lib/nativeUnits';
 
 type Tab = 'transactions' | 'connected' | 'usage';
 
@@ -15,14 +16,6 @@ function shorten(value: string, left = 10, right = 8) {
   if (!value) return '—';
   if (value.length <= left + right + 1) return value;
   return `${value.slice(0, left)}…${value.slice(-right)}`;
-}
-
-function formatInt(n: number) {
-  try {
-    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(n);
-  } catch {
-    return String(n);
-  }
 }
 
 function TabButton({ active, children, onClick }: { active: boolean; children: string; onClick: () => void }) {
@@ -318,7 +311,7 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
       <div className="mt-10 flex flex-col items-start text-left">
         <div className="flex items-end gap-2">
           <span className="font-mono text-5xl font-semibold tracking-tight text-app-text">
-            {balance === null ? '—' : formatInt(balance)}
+            {balance === null ? '—' : formatNativeUnits(balance)}
           </span>
           <span className="pb-1 text-sm font-semibold text-app-muted">MDR</span>
         </div>
@@ -417,8 +410,8 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
                         <div className="col-span-3 truncate font-mono text-xs" title={t.to}>
                           {shorten(t.to, 10, 8)}
                         </div>
-                        <div className="col-span-1 text-right font-mono text-xs">{t.amount}</div>
-                        <div className="col-span-1 text-right font-mono text-xs">{t.fee}</div>
+                        <div className="col-span-1 text-right font-mono text-xs">{formatNativeUnits(t.amount)}</div>
+                        <div className="col-span-1 text-right font-mono text-xs">{formatNativeUnits(t.fee)}</div>
                       </button>
                     ))}
                   </div>
@@ -512,5 +505,3 @@ export function TabDashboard({ navigate, onTxClick }: { navigate: (to: 'send' | 
     </div>
   );
 }
-
-

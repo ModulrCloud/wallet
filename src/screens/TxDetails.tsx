@@ -5,6 +5,7 @@ import { PrimaryButton } from '../ui/components';
 import { useWallet, type WalletTxRecord } from '../state/wallet';
 import { fetchTransaction, type TransactionReceipt } from '../lib/nodeApi';
 import { PageHeader } from '../ui/header';
+import { formatNativeUnits } from '../lib/nativeUnits';
 
 const EXPLORER_BASE = 'https://testnet.explorer.modulr.cloud';
 
@@ -255,11 +256,11 @@ export function TxDetails({ tx, back }: { tx: WalletTxRecord; back: () => void }
             <div className="grid gap-3 sm:grid-cols-3">
               <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
                 <p className="text-xs font-medium tracking-wide text-app-muted">Amount</p>
-                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{tx.amount}</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{formatNativeUnits(tx.amount)}</p>
               </div>
               <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
                 <p className="text-xs font-medium tracking-wide text-app-muted">Fee</p>
-                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{tx.fee}</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{formatNativeUnits(tx.fee)}</p>
               </div>
               <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
                 <p className="text-xs font-medium tracking-wide text-app-muted">Nonce</p>

@@ -45,6 +45,15 @@ Modulr Wallet is a secure Chrome/Chromium browser extension (Manifest V3) for th
 2. Go to **Settings**
 3. Set your **Node URL** (required for account data and transactions)
 
+## Amounts and fees
+
+- Wallet UI accepts decimal coin values (up to 9 digits after the dot).
+- Before submission, values are converted to native integer units.
+- Native scale is fixed: `1 coin = 1_000_000_000 units`.
+- Example:
+  - `2` coins -> `2000000000` units
+  - `1.67` coins -> `1670000000` units
+
 ## Development
 
 ```bash

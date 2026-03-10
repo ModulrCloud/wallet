@@ -5,6 +5,7 @@ import { IconButton, OpenInTabButton, Screen, SecondaryButton } from '../ui/comp
 import { Dialog, Drawer } from '../ui/overlays';
 import { useToast } from '../ui/toast';
 import { useTheme } from '../ui/theme';
+import { formatNativeUnits } from '../lib/nativeUnits';
 
 export type HomeNav = 'home' | 'send' | 'transactions' | 'settings';
 
@@ -153,7 +154,7 @@ export function Home({
           ].join(' ')}
         >
           <div className="flex items-baseline gap-4">
-            <span className="font-mono text-5xl font-semibold tracking-tight">{balance === null ? '—' : balance}</span>
+            <span className="font-mono text-5xl font-semibold tracking-tight">{balance === null ? '—' : formatNativeUnits(balance)}</span>
             <span className={['text-base font-semibold', isDark ? 'text-white/70' : 'text-app-muted'].join(' ')}>MDR</span>
           </div>
           <p className={['mt-1 text-sm', isDark ? 'text-white/65' : 'text-app-muted'].join(' ')}>
@@ -304,5 +305,3 @@ export function Home({
     </Screen>
   );
 }
-
-

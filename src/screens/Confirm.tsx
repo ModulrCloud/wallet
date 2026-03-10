@@ -5,6 +5,7 @@ import { PrimaryButton, SecondaryButton } from '../ui/components';
 import { useWallet, type WalletTxRecord } from '../state/wallet';
 import { buildAndSignTransferTx } from '../lib/tx';
 import { fetchAccount, submitTransaction } from '../lib/nodeApi';
+import { formatNativeUnits } from '../lib/nativeUnits';
 import type { SendDraft } from './Send';
 
 export function Confirm({ back, draft, done }: { back: () => void; draft: SendDraft; done: () => void }) {
@@ -65,11 +66,11 @@ export function Confirm({ back, draft, done }: { back: () => void; draft: SendDr
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
                 <p className="text-xs font-medium tracking-wide text-app-muted">Amount</p>
-                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{draft.amount}</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{formatNativeUnits(draft.amount)}</p>
               </div>
               <div className="rounded-xl border border-app-border bg-app-surface2 px-4 py-4 transition hover:border-app-accent/20">
                 <p className="text-xs font-medium tracking-wide text-app-muted">Fee</p>
-                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{draft.fee}</p>
+                <p className="mt-2 font-mono text-lg font-semibold text-app-text">{formatNativeUnits(draft.fee)}</p>
               </div>
             </div>
 

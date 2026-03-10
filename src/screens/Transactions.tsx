@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useWallet, type WalletTxRecord } from '../state/wallet';
 import { Screen } from '../ui/components';
 import { PageHeader } from '../ui/header';
+import { formatNativeUnits } from '../lib/nativeUnits';
 
 function shorten(value: string, left = 10, right = 8) {
   if (!value) return '—';
@@ -70,7 +71,7 @@ export function Transactions({ back, onTxClick }: { back: () => void; onTxClick?
                   <span className="text-xs text-app-muted">{new Date(t.time).toLocaleString()}</span>
                 </div>
                 <p className="mt-1 text-xs text-app-muted">
-                  {shorten(t.from)} → {shorten(t.to)} · amt {t.amount} · fee {t.fee}
+                  {shorten(t.from)} → {shorten(t.to)} · amt {formatNativeUnits(t.amount)} · fee {formatNativeUnits(t.fee)}
                 </p>
                 {t.error ? <p className="mt-1 text-xs text-app-danger">{t.error}</p> : null}
               </button>
@@ -105,4 +106,3 @@ export function Transactions({ back, onTxClick }: { back: () => void; onTxClick?
     </Screen>
   );
 }
-

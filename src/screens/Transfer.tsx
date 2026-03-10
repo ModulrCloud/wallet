@@ -6,6 +6,7 @@ import bs58 from 'bs58';
 import { useWallet, type WalletTxRecord } from '../state/wallet';
 import { fetchAccount, submitTransaction, type AccountState } from '../lib/nodeApi';
 import { buildAndSignTransferTx } from '../lib/tx';
+import { formatNativeUnits, parseDecimalToUnits } from '../lib/nativeUnits';
 import { PrimaryButton, Screen, SecondaryButton, TextInput } from '../ui/components';
 import { useToast } from '../ui/toast';
 import { Drawer } from '../ui/overlays';
@@ -20,7 +21,7 @@ function shorten(value: string, left = 8, right = 8) {
 }
 
 function calcAutoFee(memo: string) {
-  // Base fee = 1. Surcharge: +1 for every 10 symbols in memo (payload).
+  // Base fee = 1 unit. Surcharge: +1 unit for every 10 symbols in memo (payload).
   const n = memo.length;
   return 1 + Math.floor(n / 10);
 }
@@ -42,16 +43,16 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
   const acctRef = useRef<HTMLDivElement | null>(null);
 
   const [to, setTo] = useState('');
-  const [amountRaw, setAmountRaw] = useState('0');
+  const [amountRaw, setAmountRaw] = useState('');
   const [memo, setMemo] = useState('');
 
   const [feeMode, setFeeMode] = useState<'auto' | 'manual'>('auto');
-  const [manualFeeRaw, setManualFeeRaw] = useState('1');
+  const [manualFeeRaw, setManualFeeRaw] = useState('0.000000001');
 
   const fromAccount = useMemo(() => accounts.find((a) => a.id === fromId) ?? null, [accounts, fromId]);
-  const amount = useMemo(() => Number(amountRaw), [amountRaw]);
+  const amountUnits = useMemo(() => parseDecimalToUnits(amountRaw), [amountRaw]);
   const autoFee = useMemo(() => calcAutoFee(memo), [memo]);
-  const fee = useMemo(() => (feeMode === 'auto' ? autoFee : Number(manualFeeRaw)), [feeMode, autoFee, manualFeeRaw]);
+  const feeUnits = useMemo(() => (feeMode === 'auto' ? autoFee : parseDecimalToUnits(manualFeeRaw)), [feeMode, autoFee, manualFeeRaw]);
 
   const toIsValid = useMemo(() => {
     const v = to.trim();
@@ -67,10 +68,10 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
   const valid = useMemo(() => {
     if (!fromId) return false;
     if (!toIsValid) return false;
-    if (!Number.isFinite(amount) || amount <= 0) return false;
-    if (!Number.isFinite(fee) || fee < 0) return false;
+    if (amountUnits === null || amountUnits <= 0) return false;
+    if (feeUnits === null || feeUnits < 0) return false;
     return true;
-  }, [fromId, toIsValid, amount, fee]);
+  }, [fromId, toIsValid, amountUnits, feeUnits]);
 
   const [fromState, setFromState] = useState<AccountState | null>(null);
   const [fromStateLoading, setFromStateLoading] = useState(false);
@@ -110,11 +111,11 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
     return {
       fromPub: fromAccount?.pub ?? '',
       to: to.trim(),
-      amount,
-      fee,
+      amount: amountUnits ?? 0,
+      fee: feeUnits ?? 0,
       memo
     };
-  }, [fromAccount?.pub, to, amount, fee, memo]);
+  }, [fromAccount?.pub, to, amountUnits, feeUnits, memo]);
 
   const feeBase = 1;
   const payloadSurcharge = useMemo(() => Math.floor(memo.length / 10), [memo]);
@@ -150,15 +151,15 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
       items.push({
         kind: 'info',
         title: 'Memo increases fee',
-        body: `Payload fee: +${payloadSurcharge} (memo length ${memo.length}).`
+      body: `Payload fee: +${formatNativeUnits(payloadSurcharge)} (memo length ${memo.length}).`
       });
     }
     if (feeMode === 'manual') {
-      if (Number.isFinite(fee) && fee < autoFee) {
+      if (feeUnits !== null && feeUnits < autoFee) {
         items.push({
           kind: 'warning',
           title: 'Manual fee below recommended',
-          body: `Recommended auto fee is ${autoFee}. Low fee may cause the transaction to be rejected.`
+          body: `Recommended auto fee is ${formatNativeUnits(autoFee)}. Low fee may cause the transaction to be rejected.`
         });
       } else {
         items.push({
@@ -172,11 +173,11 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
       items.push({
         kind: 'warning',
         title: 'Insufficient balance',
-        body: `Need at least ${totalCost} for amount + fee. Available: ${fromState.balance}.`
+        body: `Need at least ${formatNativeUnits(totalCost)} for amount + fee. Available: ${formatNativeUnits(fromState.balance)}.`
       });
     }
     return items;
-  }, [nodeUrl, summary.fromPub, summary.to, feeMode, payloadSurcharge, memo.length, fee, autoFee, hasFunds, fromState, totalCost]);
+  }, [nodeUrl, summary.fromPub, summary.to, feeMode, payloadSurcharge, memo.length, feeUnits, autoFee, hasFunds, fromState, totalCost]);
 
   const canProceed = valid && !!nodeUrl && hasFunds;
 
@@ -202,7 +203,7 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
         return;
       }
       if (state.balance < totalCost) {
-        toast.error(`Need at least ${totalCost}. Available: ${state.balance}.`, { title: 'Insufficient balance' });
+        toast.error(`Need at least ${formatNativeUnits(totalCost)}. Available: ${formatNativeUnits(state.balance)}.`, { title: 'Insufficient balance' });
         return;
       }
 
@@ -285,24 +286,24 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-2xl border border-app-border bg-app-surface2 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.18em] text-app-muted">Amount</p>
-            <p className="mt-1 font-mono text-sm font-semibold text-app-text">{Number.isFinite(summary.amount) ? summary.amount : '—'}</p>
+            <p className="mt-1 font-mono text-sm font-semibold text-app-text">{formatNativeUnits(summary.amount)}</p>
           </div>
           <div className="rounded-2xl border border-app-border bg-app-surface2 px-4 py-3">
             <p className="text-[11px] uppercase tracking-[0.18em] text-app-muted">Fee</p>
-            <p className="mt-1 font-mono text-sm font-semibold text-app-text">{Number.isFinite(summary.fee) ? summary.fee : '—'}</p>
+            <p className="mt-1 font-mono text-sm font-semibold text-app-text">{formatNativeUnits(summary.fee)}</p>
           </div>
         </div>
         <div className="rounded-2xl border border-app-border bg-app-surface2 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-app-muted">Total</p>
-          <p className="mt-1 font-mono text-sm font-semibold text-app-text">{Number.isFinite(totalCost) ? totalCost : '—'}</p>
+          <p className="mt-1 font-mono text-sm font-semibold text-app-text">{formatNativeUnits(totalCost)}</p>
           <p className="mt-2 text-[11px] text-app-muted">
-            {feeMode === 'auto' ? `Fee breakdown: ${feeBase} base + ${payloadSurcharge} payload` : 'Fee mode: manual'}
+            {feeMode === 'auto' ? `Fee breakdown: ${formatNativeUnits(feeBase)} base + ${formatNativeUnits(payloadSurcharge)} payload` : 'Fee mode: manual'}
           </p>
         </div>
         {!hasFunds ? (
           <div className="rounded-2xl border border-app-danger/20 bg-app-danger/5 px-4 py-3">
             <p className="text-sm font-semibold text-app-danger">Insufficient balance</p>
-            <p className="mt-1 text-[11px] text-app-danger/80">You need at least {totalCost} for amount + fee.</p>
+            <p className="mt-1 text-[11px] text-app-danger/80">You need at least {formatNativeUnits(totalCost)} for amount + fee.</p>
           </div>
         ) : null}
         {summary.memo ? (
@@ -454,7 +455,7 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
                       <div className="mt-2 flex items-end justify-between gap-3">
                         <p className="text-xs text-app-muted">Available for amount + fee</p>
                         <p className="font-mono text-2xl font-semibold tracking-tight text-app-text">
-                          {fromStateLoading ? '…' : fromState ? fromState.balance : '—'}
+                          {fromStateLoading ? '…' : fromState ? formatNativeUnits(fromState.balance) : '—'}
                         </p>
                       </div>
                     </div>
@@ -462,8 +463,8 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
                     <div className="grid grid-cols-2 gap-4">
                       <div className="rounded-2xl border border-app-border bg-app-surface2 px-5 py-5">
                         <p className="text-sm font-semibold text-app-text">Amount</p>
-                        <TextInput className="mt-2" value={amountRaw} onChange={(e) => setAmountRaw(e.target.value)} placeholder="50000000" />
-                        <p className="mt-3 text-[11px] text-app-muted">Use smallest unit (integer).</p>
+                        <TextInput className="mt-2" value={amountRaw} onChange={(e) => setAmountRaw(e.target.value)} placeholder="1.45" />
+                        <p className="mt-3 text-[11px] text-app-muted">Decimal coin amount (up to 9 digits after dot).</p>
                       </div>
                       <div className="rounded-2xl border border-app-border bg-app-surface2 px-5 py-5">
                         <div className="flex items-center justify-between gap-3">
@@ -479,12 +480,12 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
                         </div>
                         <TextInput
                           className="mt-2"
-                          value={feeMode === 'auto' ? String(autoFee) : manualFeeRaw}
+                          value={feeMode === 'auto' ? formatNativeUnits(autoFee) : manualFeeRaw}
                           onChange={(e) => setManualFeeRaw(e.target.value)}
                           placeholder="1"
                           disabled={feeMode === 'auto'}
                         />
-                        <p className="mt-3 text-[11px] text-app-muted">Default fee is 1. Auto mode adds +1 per each 10 symbols in memo (payload).</p>
+                        <p className="mt-3 text-[11px] text-app-muted">Default fee is 0.000000001. Auto mode adds +0.000000001 per each 10 symbols in memo.</p>
                       </div>
                     </div>
 
@@ -513,11 +514,11 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
                   <div className="mt-3 grid gap-3 sm:grid-cols-2">
                     <div className="rounded-2xl border border-app-border bg-app-surface2 px-4 py-4">
                       <p className="text-[11px] uppercase tracking-[0.18em] text-app-muted">Amount</p>
-                      <p className="mt-1 font-mono text-lg font-semibold text-app-text">{summary.amount}</p>
+                      <p className="mt-1 font-mono text-lg font-semibold text-app-text">{formatNativeUnits(summary.amount)}</p>
                     </div>
                     <div className="rounded-2xl border border-app-border bg-app-surface2 px-4 py-4">
                       <p className="text-[11px] uppercase tracking-[0.18em] text-app-muted">Fee</p>
-                      <p className="mt-1 font-mono text-lg font-semibold text-app-text">{summary.fee}</p>
+                      <p className="mt-1 font-mono text-lg font-semibold text-app-text">{formatNativeUnits(summary.fee)}</p>
                     </div>
                   </div>
 
@@ -617,4 +618,3 @@ export function Transfer({ back, done }: { back: () => void; done: () => void })
     </Screen>
   );
 }
-
