@@ -20,7 +20,7 @@ export type TxWithReceipt = {
     fee: number;
     sig: string;
     nonce: number;
-    payload: Record<string, unknown>;
+    payload: Record<string, string>;
   };
   receipt: TransactionReceipt;
 };

@@ -11,7 +11,7 @@ export type TransferTxDraft = {
   amount: number;
   fee: number;
   nonce: number;
-  payload?: Record<string, unknown> | null;
+  payload?: Record<string, string> | null;
 };
 
 function asString(value: unknown) {
@@ -19,7 +19,7 @@ function asString(value: unknown) {
   return typeof value === 'string' ? value : String(value);
 }
 
-export function txPreimage(tx: Omit<TransferTxDraft, 'payload'> & { payload?: unknown }) {
+export function txPreimage(tx: Omit<TransferTxDraft, 'payload'> & { payload?: Record<string, string> | null }) {
   const payloadJson = stableJsonStringify(tx.payload ?? {});
   return [
     asString(tx.v ?? 0),
@@ -47,7 +47,7 @@ export function buildAndSignTransferTx(params: {
   amount: number;
   fee: number;
   nonce: number;
-  payload?: Record<string, unknown> | null;
+  payload?: Record<string, string> | null;
 }) {
   const draft: TransferTxDraft = {
     v: 1,
